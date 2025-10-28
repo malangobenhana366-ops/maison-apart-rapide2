@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maison Appart</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #00bcd4, #4caf50);
+      color: white;
+      text-align: center;
+    }
+
+    h1 {
+      margin-top: 40px;
+      font-size: 2.2em;
+    }
+
+    .btn {
+      display: block;
+      margin: 30px auto;
+      padding: 18px 32px;
+      font-size: 1.2em;
+      border: none;
+      border-radius: 12px;
+      background-color: white;
+      color: #333;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+      width: 80%;
+      max-width: 300px;
+    }
+
+    .btn:hover {
+      transform: scale(1.05);
+      background-color: #f0f0f0;
+    }
+
+    #adminBtn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 255, 255, 0.8);
+      font-size: 0.9em;
+      padding: 8px 14px;
+      border-radius: 10px;
+    }
+
+    #formSection, #searchSection, #adminSection {
+      display: none;
+      background: white;
+      color: #333;
+      margin: 30px auto;
+      padding: 20px;
+      border-radius: 15px;
+      width: 90%;
+      max-width: 400px;
+      text-align: left;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 1em;
+    }
+
+    button {
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 8px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+
+    #results img {
+      width: 100%;
+      border-radius: 10px;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🏠 Maison Appart Rapide</h1>
+
+  <button id="adminBtn">Admin</button>
+  <button class="btn" id="parcourirBtn">🔍 Parcourir</button>
+  <button class="btn" id="publierBtn">➕ Publier</button>
+
+  <!-- Formulaire de recherche -->
+  <div id="searchSection">
+    <h2>Rechercher une maison</h2>
+    <input type="text" id="ville" placeholder="Ville">
+    <input type="text" id="commune" placeholder="Commune">
+    <input type="text" id="quartier" placeholder="Quartier (facultatif)">
+    <button onclick="rechercher()">Rechercher</button>
+    <div id="results"></div>
+  </div>
+
+  <!-- Formulaire de publication -->
+  <div id="formSection">
+    <h2>Publier une maison</h2>
+    <input type="text" id="titre" placeholder="Titre">
+    <textarea id="description" placeholder="Description"></textarea>
+    <input type="number" id="prix" placeholder="Prix">
+    <input type="text" id="villePub" placeholder="Ville">
+    <input type="text" id="communePub" placeholder="Commune">
+    <input type="text" id="quartierPub" placeholder="Quartier">
+    <input type="text" id="garantie" placeholder="Garantie (ex: 3 mois)">
+    <input type="text" id="localisation" placeholder="Localisation (lat,long)">
+    <input type="file" id="images" multiple accept="image/*">
+    <button onclick="publier()">Publier</button>
+  </div>
+
+  <!-- Admin -->
+  <div id="adminSection">
+    <h2>Admin</h2>
+    <input type="password" id="adminPass" placeholder="Mot de passe admin">
+    <button onclick="loginAdmin()">Connexion</button>
+    <div id="adminPanel"></div>
+  </div>
+
+  <script>
+    const API_URL = "http://localhost:3000"; // ton cerveau local
+
+    const publierBtn = document.getElementById('publierBtn');
+    const parcourirBtn = document.getElementById('parcourirBtn');
+    const adminBtn = document.getElementById('adminBtn');
+
+    const formSection = document.getElementById('formSection');
+    const searchSection = document.getElementById('searchSection');
+    const adminSection = document.getElementById('adminSection');
+
+    publierBtn.onclick = () => {
+      formSection.style.display = 'block';
+      searchSection.style.display = 'none';
+      adminSection.style.display = 'none';
+    };
+
+    parcourirBtn.onclick = () => {
+      searchSection.style.display = 'block';
+      formSection.style.display = 'none';
+      adminSection.style.display = 'none';
+    };
+
+    adminBtn.onclick = () => {
+      adminSection.style.display = 'block';
+      formSection.style.display = 'none';
+      searchSection.style.display = 'none';
+    };
+
+    async function rechercher() {
+      const ville = document.getElementById('ville').value;
+      const commune = document.getElementById('commune').value;
+      const quartier = document.getElementById('quartier').value;
+      const response = await fetch(`${API_URL}/api/maisons`);
+      const data = await response.json();
+      const results = data.filter(m =>
+        m.ville.toLowerCase().includes(ville.toLowerCase()) &&
+        m.commune.toLowerCase().includes(commune.toLowerCase()) &&
+        (!quartier || m.quartier.toLowerCase().includes(quartier.toLowerCase()))
+      );
+
+      const container = document.getElementById('results');
+      container.innerHTML = "";
+      results.forEach(m => {
+        const div = document.createElement('div');
+        div.innerHTML = `
+          <h3>${m.titre}</h3>
+          <p>${m.description}</p>
+          <p><b>Prix:</b> ${m.prix} FCFA</p>
+          <p><b>Ville:</b> ${m.ville}</p>
+          ${m.images?.map(img => `<img src="${API_URL}/${img}" />`).join('')}
+          <hr>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    async function publier() {
+      const formData = new FormData();
+      formData.append("titre", document.getElementById('titre').value);
+      formData.append("description", document.getElementById('description').value);
+      formData.append("prix", document.getElementById('prix').value);
+      formData.append("ville", document.getElementById('villePub').value);
+      formData.append("commune", document.getElementById('communePub').value);
+      formData.append("quartier", document.getElementById('quartierPub').value);
+      formData.append("garantie", document.getElementById('garantie').value);
+      formData.append("localisation", document.getElementById('localisation').value);
+
+      const files = document.getElementById('images').files;
+      for (let i = 0; i < files.length; i++) {
+        formData.append("images", files[i]);
+      }
+
+      await fetch(`${API_URL}/api/maisons`, {
+        method: "POST",
+        body: formData
+      });
+
+      alert("Maison publiée avec succès !");
+      formSection.style.display = "none";
+    }
+
+    async function loginAdmin() {
+      const pass = document.getElementById('adminPass').value;
+      if (pass !== "Ben&4002") {
+        alert("Mot de passe incorrect !");
+        return;
+      }
+      const res = await fetch(`${API_URL}/api/maisons`);
+      const data = await res.json();
+      const panel = document.getElementById('adminPanel');
+      panel.innerHTML = "<h3>Maisons publiées :</h3>";
+      data.forEach(m => {
+        const div = document.createElement('div');
+        div.innerHTML = `
+          <p>${m.titre} — ${m.ville}</p>
+          <button onclick="supprimer('${m.id}')">Supprimer</button>
+        `;
+        panel.appendChild(div);
+      });
+    }
+
+    async function supprimer(id) {
+      await fetch(`${API_URL}/api/maisons/${id}`, { method: "DELETE" });
+      alert("Maison supprimée !");
+      loginAdmin();
+    }
+  </script>
+</body>
+</html>
